@@ -1,19 +1,17 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+// const allRoutes = require("./router/router");
 const dotenv = require("dotenv");
+const mongoose = require("mongoose");
 const createError = require("http-errors");
 const path = require("path");
 const { allRoutes } = require("./router/router");
-const { MongoClient, ServerApiVersion } = require("mongodb");
-
 dotenv.config();
-
 class Application {
   #app = express();
   #PORT = process.env.PORT || 5000;
   #DB_URI = process.env.APP_DB;
-  #mongoClient;
 
   constructor() {
     this.createServer();
@@ -23,62 +21,40 @@ class Application {
     this.configRoutes();
     this.errorHandling();
   }
-
   createServer() {
     this.#app.listen(this.#PORT, () =>
-      console.log(`Listening on port ${this.#PORT}`)
+      console.log(`listening on port ${this.#PORT}`)
     );
   }
-
-  async connectToDB() {
-    try {
-      this.#mongoClient = new MongoClient(this.#DB_URI, {
-        serverApi: {
-          version: ServerApiVersion.v1,
-          strict: true,
-          deprecationErrors: true,
-        },
-      });
-
-      await this.#mongoClient.connect();
-      await this.#mongoClient.db("admin").command({ ping: 1 });
-      console.log("MongoDB connected!!");
-    } catch (err) {
-      console.log("Failed to connect to MongoDB", err);
-    }
+  connectToDB() {
+    mongoose
+      .connect(this.#DB_URI)
+      .then((res) => console.log("MongoDB connected!!"))
+      .catch((err) =>
+        console.log("Failed to connect to MongoDB", err)
+      );
   }
-
   configServer() {
     this.#app.use(
       cors({
         credentials: true,
-        origin: process.env.ALLOW_CORS_ORIGIN,
+        origin: "http://localhost:3000",
       })
     );
     this.#app.use(express.json());
     this.#app.use(express.urlencoded({ extended: true }));
     this.#app.use(express.static(path.join(__dirname, "..")));
   }
-
   initClientSession() {
     this.#app.use(cookieParser(process.env.COOKIE_PARSER_SECRET_KEY));
   }
-
   configRoutes() {
-    // Middleware برای inject کردن client تو req
-    this.#app.use("/api", (req, res, next) => {
-      req.mongoClient = this.#mongoClient;
-      next();
-    });
-
     this.#app.use("/api", allRoutes);
   }
-
   errorHandling() {
     this.#app.use((req, res, next) => {
       next(createError.NotFound("آدرس مورد نظر یافت نشد"));
     });
-
     this.#app.use((error, req, res, next) => {
       const serverError = createError.InternalServerError();
       const statusCode = error.status || serverError.status;

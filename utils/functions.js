@@ -20,7 +20,18 @@ function generateRandomNumber(length) {
 }
 
 function toPersianDigits(n) {
-  const farsiDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+  const farsiDigits = [
+    "۰",
+    "۱",
+    "۲",
+    "۳",
+    "۴",
+    "۵",
+    "۶",
+    "۷",
+    "۸",
+    "۹",
+  ];
   return n.toString().replace(/\d/g, (x) => farsiDigits[parseInt(x)]);
 }
 
@@ -29,13 +40,17 @@ async function setAccessToken(res, user) {
     maxAge: 1000 * 60 * 60 * 24 * 1, // would expire after 1 days
     httpOnly: true, // The cookie only accessible by the web server
     signed: true, // Indicates if the cookie should be signed
-    sameSite: "Lax",
+    sameSite: process.env.NODE_ENV === "development" ? "lax" : "none",
     secure: process.env.NODE_ENV === "development" ? false : true,
     domain: process.env.DOMAIN,
   };
   res.cookie(
     "accessToken",
-    await generateToken(user, "1d", process.env.ACCESS_TOKEN_SECRET_KEY),
+    await generateToken(
+      user,
+      "1d",
+      process.env.ACCESS_TOKEN_SECRET_KEY
+    ),
     cookieOptions
   );
 }
@@ -45,13 +60,17 @@ async function setRefreshToken(res, user) {
     maxAge: 1000 * 60 * 60 * 24 * 365, // would expire after 1 year
     httpOnly: true, // The cookie only accessible by the web server
     signed: true, // Indicates if the cookie should be signed
-    sameSite: "Lax",
+    sameSite: process.env.NODE_ENV === "development" ? "lax" : "none",
     secure: process.env.NODE_ENV === "development" ? false : true,
     domain: process.env.DOMAIN,
   };
   res.cookie(
     "refreshToken",
-    await generateToken(user, "1y", process.env.REFRESH_TOKEN_SECRET_KEY),
+    await generateToken(
+      user,
+      "1y",
+      process.env.REFRESH_TOKEN_SECRET_KEY
+    ),
     cookieOptions
   );
 }
@@ -71,7 +90,8 @@ function generateToken(user, expiresIn, secret) {
       secret || process.env.TOKEN_SECRET_KEY,
       options,
       (err, token) => {
-        if (err) reject(createError.InternalServerError("خطای سروری"));
+        if (err)
+          reject(createError.InternalServerError("خطای سروری"));
         resolve(token);
       }
     );
@@ -93,14 +113,17 @@ function verifyRefreshToken(req) {
       async (err, payload) => {
         try {
           if (err)
-            reject(createError.Unauthorized("لطفا حساب کاربری خود شوید"));
+            reject(
+              createError.Unauthorized("لطفا حساب کاربری خود شوید")
+            );
           const { _id } = payload;
           const user = await UserModel.findById(_id, {
             password: 0,
             otp: 0,
             resetLink: 0,
           });
-          if (!user) reject(createError.Unauthorized("حساب کاربری یافت نشد"));
+          if (!user)
+            reject(createError.Unauthorized("حساب کاربری یافت نشد"));
           return resolve(_id);
         } catch (error) {
           reject(createError.Unauthorized("حساب کاربری یافت نشد"));
@@ -158,7 +181,8 @@ async function getUserCartDetail(userId) {
             body: function (productDetail, products) {
               return productDetail.map(function (product) {
                 const quantity = products.find(
-                  (item) => item.productId.valueOf() == product._id.valueOf()
+                  (item) =>
+                    item.productId.valueOf() == product._id.valueOf()
                 ).quantity;
                 // const totalPrice = count * product.price;
                 return {
@@ -182,34 +206,49 @@ async function getUserCartDetail(userId) {
           $function: {
             body: function discountDetail(productDetail, coupon) {
               if (!coupon)
-                return { newProductDetail: productDetail, coupon: null };
+                return {
+                  newProductDetail: productDetail,
+                  coupon: null,
+                };
               const isExpiredCoupon =
                 coupon.expireDate &&
                 new Date(coupon.expireDate).getTime() < Date.now();
-              const isReachedLimit = coupon.usageCount >= coupon.usageLimit;
-              if (!coupon.isActive || isReachedLimit || isExpiredCoupon)
+              const isReachedLimit =
+                coupon.usageCount >= coupon.usageLimit;
+              if (
+                !coupon.isActive ||
+                isReachedLimit ||
+                isExpiredCoupon
+              )
                 return null;
 
-              const newProductDetail = productDetail.map((product) => {
-                if (product.discount) return product;
-                if (coupon.productIds.find((id) => id.equals(product._id))) {
-                  if (coupon.type === "fixedProduct") {
-                    if (product.price < coupon.amount) return product;
-                    return {
-                      ...product,
-                      offPrice: product.price - coupon.amount,
-                    };
-                  }
-                  if (coupon.type === "percent") {
-                    return {
-                      ...product,
-                      offPrice: parseInt(
-                        product.price * (1 - coupon.amount / 100)
-                      ),
-                    };
-                  }
-                } else return product;
-              });
+              const newProductDetail = productDetail.map(
+                (product) => {
+                  if (product.discount) return product;
+                  if (
+                    coupon.productIds.find((id) =>
+                      id.equals(product._id)
+                    )
+                  ) {
+                    if (coupon.type === "fixedProduct") {
+                      if (product.price < coupon.amount)
+                        return product;
+                      return {
+                        ...product,
+                        offPrice: product.price - coupon.amount,
+                      };
+                    }
+                    if (coupon.type === "percent") {
+                      return {
+                        ...product,
+                        offPrice: parseInt(
+                          product.price * (1 - coupon.amount / 100)
+                        ),
+                      };
+                    }
+                  } else return product;
+                }
+              );
 
               return {
                 newProductDetail,
@@ -227,20 +266,35 @@ async function getUserCartDetail(userId) {
         payDetail: {
           $function: {
             body: function (productDetail, userName) {
-              const totalPrice = productDetail.reduce((total, product) => {
-                return total + parseInt(product.offPrice * product.quantity);
-              }, 0);
-              const totalGrossPrice = productDetail.reduce((total, product) => {
-                return total + parseInt(product.price * product.quantity);
-              }, 0);
-              const totalOffAmount = productDetail.reduce((total, product) => {
-                return (
-                  total +
-                  parseInt(
-                    (product.price - product.offPrice) * product.quantity
-                  )
-                );
-              }, 0);
+              const totalPrice = productDetail.reduce(
+                (total, product) => {
+                  return (
+                    total +
+                    parseInt(product.offPrice * product.quantity)
+                  );
+                },
+                0
+              );
+              const totalGrossPrice = productDetail.reduce(
+                (total, product) => {
+                  return (
+                    total + parseInt(product.price * product.quantity)
+                  );
+                },
+                0
+              );
+              const totalOffAmount = productDetail.reduce(
+                (total, product) => {
+                  return (
+                    total +
+                    parseInt(
+                      (product.price - product.offPrice) *
+                        product.quantity
+                    )
+                  );
+                },
+                0
+              );
               const orderItems = [];
               productDetail.map((product) => {
                 orderItems.push({
@@ -288,7 +342,10 @@ async function getUserCartDetail(userId) {
 function copyObject(object) {
   return JSON.parse(JSON.stringify(object));
 }
-function deleteInvalidPropertyInObject(data = {}, blackListFields = []) {
+function deleteInvalidPropertyInObject(
+  data = {},
+  blackListFields = []
+) {
   // let nullishData = ["", " ", "0", 0, null, undefined];
   let nullishData = ["", " ", null, undefined];
   Object.keys(data).forEach((key) => {
@@ -296,14 +353,17 @@ function deleteInvalidPropertyInObject(data = {}, blackListFields = []) {
     if (typeof data[key] == "string") data[key] = data[key].trim();
     if (Array.isArray(data[key]) && data[key].length > 0)
       data[key] = data[key].map((item) => item.trim());
-    if (Array.isArray(data[key]) && data[key].length == 0) delete data[key];
+    if (Array.isArray(data[key]) && data[key].length == 0)
+      delete data[key];
     if (nullishData.includes(data[key])) delete data[key];
   });
 }
 async function checkProductExist(id) {
   const { ProductModel } = require("../app/models/product");
   if (!mongoose.isValidObjectId(id))
-    throw createError.BadRequest("شناسه محصول ارسال شده صحیح نمیباشد");
+    throw createError.BadRequest(
+      "شناسه محصول ارسال شده صحیح نمیباشد"
+    );
   const product = await ProductModel.findById(id);
   if (!product) throw createError.NotFound("محصولی یافت نشد");
   return product;

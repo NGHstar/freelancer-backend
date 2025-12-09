@@ -5,6 +5,9 @@ const { UserModel } = require("../../models/user");
 
 async function verifyAccessToken(req, res, next) {
   try {
+    console.log("🔐 req.secure:", req.secure);
+    console.log("🍪 signedCookies:", req.signedCookies);
+    console.log("🍪 cookies:", req.cookies); // برای مقایسه
     const token = req.signedCookies["accessToken"];
     if (!token) {
       throw createHttpError.Unauthorized(

@@ -35,6 +35,8 @@ class Application {
       );
   }
   configServer() {
+    this.#app.set("trust proxy", 1);
+
     this.#app.use(
       cors({
         credentials: true,

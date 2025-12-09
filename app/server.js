@@ -38,7 +38,7 @@ class Application {
     this.#app.use(
       cors({
         credentials: true,
-        origin: "http://localhost:3000",
+        origin: process.env.ALLOW_CORS_ORIGIN,
       })
     );
     this.#app.use(express.json());

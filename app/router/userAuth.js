@@ -1,11 +1,21 @@
 const router = require("express").Router();
 const expressAsyncHandler = require("express-async-handler");
 // const { uploadFile } = require("../../utils/multer");
-const { verifyAccessToken } = require("../http/middlewares/user.middleware");
-const { UserAuthController } = require("../http/controllers/userAuth.controller");
+const {
+  verifyAccessToken,
+} = require("../http/middlewares/user.middleware");
+const {
+  UserAuthController,
+} = require("../http/controllers/userAuth.controller");
 
-router.post("/get-otp", expressAsyncHandler(UserAuthController.getOtp));
-router.post("/check-otp", expressAsyncHandler(UserAuthController.checkOtp));
+router.post(
+  "/get-otp",
+  expressAsyncHandler(UserAuthController.getOtp)
+);
+router.post(
+  "/check-otp",
+  expressAsyncHandler(UserAuthController.checkOtp)
+);
 router.post(
   "/complete-profile",
   verifyAccessToken,
@@ -27,7 +37,17 @@ router.get(
   expressAsyncHandler(UserAuthController.getUserProfile)
 );
 
-router.post("/logout", expressAsyncHandler(UserAuthController.logout));
+router.get("/test-cookie", (req, res) => {
+  res.json({
+    cookies: req.cookies,
+    signedCookies: req.signedCookies,
+  });
+});
+
+router.post(
+  "/logout",
+  expressAsyncHandler(UserAuthController.logout)
+);
 
 module.exports = {
   userAuthRoutes: router,

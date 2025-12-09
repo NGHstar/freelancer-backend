@@ -235,7 +235,7 @@ class userAuthController extends Controller {
       expires: Date.now(),
       httpOnly: true,
       signed: true,
-      sameSite: "Lax",
+      sameSite: "none",
       secure: true,
       path: "/",
       domain: process.env.DOMAIN,

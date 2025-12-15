@@ -12,7 +12,8 @@ class ProjectController extends Controller {
   async addNewProject(req, res) {
     const userId = req.user._id;
     await addProjectSchema.validateAsync(req.body);
-    const { title, description, tags, category, budget, deadline } = req.body;
+    const { title, description, tags, category, budget, deadline } =
+      req.body;
 
     const project = await ProjectModel.create({
       title,
@@ -51,7 +52,9 @@ class ProjectController extends Controller {
       const categories = category.split(",");
       const categoryIds = [];
       for (const item of categories) {
-        const category = await CategoryModel.findOne({ englishTitle: item });
+        const category = await CategoryModel.findOne({
+          englishTitle: item,
+        });
         if (category) categoryIds.push(category._id);
       }
       dbQuery["category"] = {
@@ -73,7 +76,9 @@ class ProjectController extends Controller {
         freelancer: 0,
         proposals: 0,
       })
-      .populate([{ path: "category", select: { title: 1, englishTitle: 1 } }])
+      .populate([
+        { path: "category", select: { title: 1, englishTitle: 1 } },
+      ])
       .sort(sortQuery);
 
     return res.status(HttpStatus.OK).json({
@@ -95,7 +100,9 @@ class ProjectController extends Controller {
       const categories = category.split(",");
       const categoryIds = [];
       for (const item of categories) {
-        const { _id } = await CategoryModel.findOne({ englishTitle: item });
+        const { _id } = await CategoryModel.findOne({
+          englishTitle: item,
+        });
         categoryIds.push(_id);
       }
       dbQuery["category"] = {
@@ -170,7 +177,9 @@ class ProjectController extends Controller {
   }
   async findProjectById(id) {
     if (!mongoose.isValidObjectId(id))
-      throw createHttpError.BadRequest("شناسه پروژ ارسال شده صحیح نمیباشد");
+      throw createHttpError.BadRequest(
+        "شناسه پروژ ارسال شده صحیح نمیباشد"
+      );
     const project = await ProjectModel.findById(id);
     if (!project) throw createHttpError.NotFound("پروژه یافت نشد.");
     return project;
@@ -185,10 +194,13 @@ class ProjectController extends Controller {
     );
 
     if (updateResult.modifiedCount === 0)
-      throw createHttpError.InternalServerError(" وضعیت پروپوزال آپدیت نشد");
+      throw createHttpError.InternalServerError(
+        " وضعیت پروپوزال آپدیت نشد"
+      );
 
     let message = "پروژه بسته شد";
-    if (status === "OPEN") message = "وضعیت پروژه به حالت باز تغییر یافت";
+    if (status === "OPEN")
+      message = "وضعیت پروژه به حالت باز تغییر یافت";
 
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
@@ -216,13 +228,21 @@ class ProjectController extends Controller {
   async updateProject(req, res) {
     const { id } = req.params;
     await this.findProjectById(id);
-    const { title, description, tags, deadline, category, budget } = req.body;
+    const { title, description, tags, deadline, category, budget } =
+      req.body;
     console.log(req.body);
     await addProjectSchema.validateAsync(req.body);
     const updateResult = await ProjectModel.updateOne(
       { _id: id },
       {
-        $set: { title, description, tags, deadline, category, budget },
+        $set: {
+          title,
+          description,
+          tags,
+          deadline,
+          category,
+          budget,
+        },
       }
     );
     if (updateResult.modifiedCount == 0)

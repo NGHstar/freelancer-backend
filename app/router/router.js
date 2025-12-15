@@ -14,14 +14,13 @@ const router = require("express").Router();
 
 router.use("/user", userAuthRoutes);
 router.use("/category", categoryRoutes);
+router.use("/project", projectRoutes);
 router.use(
-  "/project",
+  "/proposal",
   verifyAccessToken,
   isVerifiedUser,
-  // authorize(ROLES.ADMIN, ROLES.OWNER),
-  projectRoutes
+  proposalRoutes
 );
-router.use("/proposal", verifyAccessToken, isVerifiedUser, proposalRoutes);
 router.use(
   "/admin",
   verifyAccessToken,

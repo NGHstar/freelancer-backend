@@ -1,11 +1,23 @@
 const expressAsyncHandler = require("express-async-handler");
-const { ProjectController } = require("../http/controllers/project.controller");
+const {
+  ProjectController,
+} = require("../http/controllers/project.controller");
 const { ROLES } = require("../../utils/constants");
 const { authorize } = require("../http/middlewares/permission.guard");
+const {
+  verifyAccessToken,
+  isVerifiedUser,
+} = require("../http/middlewares/user.middleware");
 
 const router = require("express").Router();
 
-router.get("/list", expressAsyncHandler(ProjectController.getListOfProjects));
+router.get(
+  "/list",
+  expressAsyncHandler(ProjectController.getListOfProjects)
+);
+
+router.use(verifyAccessToken, isVerifiedUser);
+
 router.get(
   "/owner-projects",
   authorize(ROLES.ADMIN, ROLES.OWNER),
